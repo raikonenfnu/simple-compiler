@@ -1,0 +1,7 @@
+digraph main
+  bb0;
+  bb1;
+  somewhere;
+  {block_id} -> {succ};
+  {block_id} -> {succ};
+}
