@@ -67,6 +67,7 @@ def get_consumers(func, cfg, named_blocks):
     return consumers
 
 def dce(named_blocks, consumers):
+    changed = False
     for block_id in named_blocks:
         offset = 0
         new_block = named_blocks[block_id].copy()
@@ -78,15 +79,19 @@ def dce(named_blocks, consumers):
             if len(consumers[SSA(instr["dest"], instr_id, block_id)]) == 0:
                 new_block.pop(instr_id - offset)
                 offset += 1
+                changed = True
         named_blocks[block_id] = new_block
+    return changed
 
 def main():
     prog = json.load(sys.stdin)
     for func_id, func in enumerate(prog["functions"]):
+        changed = True
         fn_blocks = form_blocks(func["instrs"])
         cfg, named_blocks = get_cfg(fn_blocks)
-        consumers = get_consumers(func, cfg, named_blocks)
-        dce(named_blocks, consumers)
+        while changed:
+            consumers = get_consumers(func, cfg, named_blocks)
+            changed = dce(named_blocks, consumers)
         prog["functions"][func_id]["instrs"] = flatten_named_blocks(named_blocks)
     json.dump(prog, sys.stdout, indent=2, sort_keys=True)
 
