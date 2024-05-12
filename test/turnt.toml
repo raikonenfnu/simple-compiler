@@ -1,1 +1,0 @@
-command = "/home/stanley/nod/venv/genai/bin/bril2json < {filename} | python ../passes/cfg.py"

@@ -3,6 +3,9 @@ import json
 
 TERMINATORS = {"jmp", "br", "ret"}
 
+def flatten_named_blocks(named_blocks):
+    return [instr for block_id in named_blocks for instr in named_blocks[block_id]]
+
 # Within a CFG, jumps and branch can only happen at
 # end of basic block, and you can only jump to a
 # top of basic block.
@@ -15,7 +18,6 @@ def form_blocks(body):
 
             if instr["op"] in TERMINATORS:
                 blocks.append(cur_block)
-                cur_block = []
 
         elif "label" in instr:
             blocks.append(cur_block)
@@ -31,15 +33,14 @@ def form_blocks(body):
 
 def get_cfg(blocks):
     cfg = {}
+    named_blocks = {}
     previous_block_name = ""
     for block_id, block in enumerate(blocks):
         block_name = f"bb{block_id}"
         succ = {}
         if "label" in block[0]:
             block_name = block[0]["label"]
-        if "op" not in block[-1]:
-            raise ValueError("Expected last instr in a block to be an op.")
-        if block[-1]["op"] in {"jmp", "br"}:
+        if "op" in block[-1] and block[-1]["op"] in {"jmp", "br"}:
             succ = block[-1]["labels"]
         # Handle case where previous block do not branch out.
         # this allow us to safely generate cfg and name blocks
@@ -47,8 +48,9 @@ def get_cfg(blocks):
         if previous_block_name in cfg and len(cfg[previous_block_name]) == 0:
             cfg[previous_block_name] = [block_name]
         cfg[block_name] = succ
+        named_blocks[block_name] = block
         previous_block_name = block_name
-    return cfg
+    return cfg, named_blocks
 
 def cfg_printer(fn_name, cfg):
     print(f"digraph {fn_name}")
@@ -56,13 +58,13 @@ def cfg_printer(fn_name, cfg):
         print(f"  {block_id};")
     for block_id in cfg:
         for succ in cfg[block_id]:
-            print("  {block_id} -> {succ};")
+            print(f"  {block_id} -> {succ};")
     print("}")
 def main():
     prog = json.load(sys.stdin)
     for func in prog["functions"]:
         fn_blocks = form_blocks(func["instrs"])
-        cfg = get_cfg(fn_blocks)
+        cfg, _ = get_cfg(fn_blocks)
         cfg_printer(func["name"],cfg)
 
 

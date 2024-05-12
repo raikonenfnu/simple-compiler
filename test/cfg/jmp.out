@@ -1,0 +1,7 @@
+digraph main
+  bb0;
+  bb1;
+  somewhere;
+  bb0 -> bb1;
+  bb1 -> somewhere;
+}
