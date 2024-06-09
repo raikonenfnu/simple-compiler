@@ -12,16 +12,26 @@ def flatten_named_blocks(named_blocks):
 def form_blocks(body):
     blocks = []
     cur_block = []
+    block_iter = 0
     for instr_id, instr in enumerate(body):
         if "op" in instr:
             cur_block.append(instr)
 
             if instr["op"] in TERMINATORS:
                 blocks.append(cur_block)
+                cur_block = []
+                block_iter += 1
 
         elif "label" in instr:
-            blocks.append(cur_block)
+            # Only create/use new block if current block is not empty.
+            # In cases where branching/terminator happen right before
+            # new label/region, it may cause empty blocks to be added,
+            # if this check is not here.
+            if (len(cur_block) > 0):
+                blocks.append(cur_block)
             cur_block = [instr]
+            block_iter += 1
+
         else:
             raise ValueError(f"Encountered unexpected intruction type. {instr}")
 
